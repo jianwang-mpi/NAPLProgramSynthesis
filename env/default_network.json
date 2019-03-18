@@ -1,0 +1,138 @@
+{
+  "Nodes": [
+    {
+      "Id": "0",
+      "Properties": {
+        "Delay": 5,
+        "HopCount": 2
+      }
+    },
+    {
+      "Id": "1",
+      "Properties": {
+        "Delay": 1.2,
+        "HopCount": 2
+      }
+    },
+    {
+      "Id": "2",
+      "Properties": {
+        "Delay": 2.4,
+        "HopCount": 2
+      }
+    },
+    {
+      "Id": "3",
+      "Properties": {
+        "Delay": 4.5,
+        "HopCount": 2
+      }
+    },
+    {
+      "Id": "4",
+      "Properties": {
+        "Delay": 1,
+        "HopCount": 2
+      }
+    },
+    {
+      "Id": "5",
+      "Properties": {
+        "Delay": 1,
+        "HopCount": 2
+      }
+    }
+  ],
+  "Links": [
+    {
+      "Id": "L0",
+      "Source": "0",
+      "Target": "1",
+      "Properties": {
+        "Bandwidth": 100.3,
+        "Cost": 1,
+        "Delay": 5
+      }
+    },
+    {
+      "Id": "L1",
+      "Source": "1",
+      "Target": "2",
+      "Properties": {
+        "Bandwidth": 100.3,
+        "Cost": 1,
+        "Delay": 5
+      }
+    },
+    {
+      "Id": "L2",
+      "Source": "2",
+      "Target": "3",
+      "Properties": {
+        "Bandwidth": 100.3,
+        "Cost": 1,
+        "Delay": 5
+      }
+    },
+    {
+      "Id": "L3",
+      "Source": "3",
+      "Target": "4",
+      "Properties": {
+        "Bandwidth": 100.3,
+        "Cost": 1,
+        "Delay": 5
+      }
+    },
+    {
+      "Id": "L4",
+      "Source": "4",
+      "Target": "5",
+      "Properties": {
+        "Bandwidth": 100.3,
+        "Cost": 1,
+        "Delay": 5
+      }
+    },
+    {
+      "Id": "L5",
+      "Source": "5",
+      "Target": "0",
+      "Properties": {
+        "Bandwidth": 100.3,
+        "Cost": 1,
+        "Delay": 5
+      }
+    },
+    {
+      "Id": "L6",
+      "Source": "0",
+      "Target": "3",
+      "Properties": {
+        "Bandwidth": 100.3,
+        "Cost": 1,
+        "Delay": 5
+      }
+    },
+    {
+      "Id": "L7",
+      "Source": "5",
+      "Target": "2",
+      "Properties": {
+        "Bandwidth": 100.3,
+        "Cost": 1,
+        "Delay": 5
+      }
+    },
+    {
+      "Id": "L8",
+      "Source": "4",
+      "Target": "1",
+      "Properties": {
+        "Bandwidth": 100.3,
+        "Cost": 1,
+        "Delay": 5
+      }
+    }
+  ]
+}
