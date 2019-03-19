@@ -9,3 +9,10 @@ import env.action as action
 
 if __name__ == '__main__':
     env = Env()
+    state = env.reset()
+    print(state)
+    print(env.target_state)
+    state = env.step(3, (2, 3))
+    print(state)
+    state = env.reset()
+    print(env.network.G.edges)
