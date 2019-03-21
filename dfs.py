@@ -61,7 +61,7 @@ class DFS:
         return False
 
 
-@time_limit(1)
+@time_limit(10)
 def dfs_search(target=None):
     env = Env()
     dfs = DFS()
@@ -94,5 +94,5 @@ if __name__ == '__main__':
     print('success rate: ', float(count) / total_amount)
     print('avg time: ', total_time / count)
     print('avg code length: ', float(total_code_length) / count)
-    np.save('dataset/data.npy', dataset)
+    np.save('dataset/raw_data.npy', dataset)
 
