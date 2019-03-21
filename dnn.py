@@ -1,7 +1,7 @@
 import torch
 from torch.utils.data.dataset import Dataset
 from torch.utils.data.dataloader import DataLoader
-from env.bitvector import BitVector
+from env.env import Env
 from network.FullConnected import Net
 import torch.nn.functional as F
 import pickle
