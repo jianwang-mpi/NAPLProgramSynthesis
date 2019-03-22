@@ -5,6 +5,7 @@ import networkx as nx
 import copy
 import random
 
+
 class Env:
     def __init__(self, target_state=None, max_len=4):
         self.network = Network('env/default_network.json')
@@ -16,6 +17,8 @@ class Env:
             self.target_state = target_state
         self.max_len = max_len
         self.count = 0
+
+        self.n_state = self.state.size * 2
 
     def random_select_target(self):
         source_target = np.random.choice(action.find_path_source, size=2, replace=False)

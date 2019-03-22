@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class Net(nn.Module):
-    def __init__(self, n_state, n_action, hidden_num=128):
+    def __init__(self, n_state, n_action, hidden_num=512):
         super(Net, self).__init__()
         self.n_state = n_state
         self.n_action = n_action
