@@ -81,8 +81,9 @@ class BitVectorDataset(Dataset):
             actions = item[1]
             env = Env(target_state=init_target)
             for action in actions:
-                if action != 0:
-                    dataset.append({"state": state, "action": action})
+                # if action != 0:
+                #     dataset.append({"state": state, "action": action})
+                dataset.append({"state": state, "action": action})
                 state, reward, done = env.step(action[0], action[1])
                 if done:
                     break
