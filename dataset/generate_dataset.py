@@ -14,8 +14,8 @@ def generate_dataset(raw_data_file_path):
             state, reward, done = env.step(action[0], action[1])
             if done:
                 break
-    np.save('dataset/dataset.npy', dataset)
-
+    # np.save('dataset/dataset.npy', dataset)
+    print(dataset)
 
 if __name__ == '__main__':
     generate_dataset('dataset/raw_data.npy')

@@ -3,41 +3,18 @@ from torch.utils.data.dataset import Dataset
 from torch.utils.data.dataloader import DataLoader
 from env.env import Env
 import env.action as action_def
-from network.FullConnected import Net
-import torch.nn.functional as F
-import pickle
 import numpy as np
 from tqdm import tqdm
 from tensorboard_logger import configure, log_value
 import time
 import os
+from network.GrammarNet import GrammarNet
 
-env = Env()
-N_STATES = env.n_state
+
 log_dir = 'logs/{}'.format(time.time())
 if not os.path.exists(log_dir):
     os.mkdir(log_dir)
 configure(logdir=log_dir)
-
-
-class GrammarNet(torch.nn.Module):
-    def forward(self, state):
-        root_result = self.root_grammar(state)
-        delete_node_reslt = self.delete_node_grammar(state)
-        delete_edge_result = self.delete_edge_grammar(state)
-        filter_result = self.filter_grammar(state)
-        find_path_result = self.find_path_grammar(state)
-
-        return root_result, [delete_node_reslt, delete_edge_result, filter_result, find_path_result]
-
-    def __init__(self):
-        super().__init__()
-        self.root_grammar = Net(n_state=N_STATES, n_action=len(action_def.action))
-        self.delete_node_grammar = Net(n_state=N_STATES, n_action=len(action_def.delete_node_action))
-        self.delete_edge_grammar = Net(n_state=N_STATES, n_action=len(action_def.delete_edge_action))
-        self.filter_grammar = Net(n_state=N_STATES, n_action=len(action_def.filter_action))
-        self.find_path_grammar = Net(n_state=N_STATES, n_action=2 * len(action_def.find_path_source))
-
 
 class BitVectorDataset(Dataset):
     def __init__(self, path):
@@ -81,8 +58,6 @@ class BitVectorDataset(Dataset):
             actions = item[1]
             env = Env(target_state=init_target)
             for action in actions:
-                # if action != 0:
-                #     dataset.append({"state": state, "action": action})
                 dataset.append({"state": state, "action": action})
                 state, reward, done = env.step(action[0], action[1])
                 if done:
@@ -116,7 +91,6 @@ class Pretrain:
                 root_selection = torch.argmax(y_root).item()
                 self.optimizer.zero_grad()
                 loss_root = self.loss(y_root, y_root_)
-
                 loss_root.backward()
                 loss_leaf = self.loss(y_leaf, y_leafs[root_selection])
                 loss_leaf.backward()
@@ -129,47 +103,61 @@ class Pretrain:
             print("loss_leaf_val is: {}".format(loss_leaf_val))
             log_value(name="loss_root_val", value=loss_root_val, step=_)
             log_value(name="loss_leaf_val", value=loss_leaf_val, step=_)
-            # self.test()
+            self.test()
 
-    def test(self, init_max=256, target_max=256, load_dir=None):
+    def test(self, test_case_count=200, load_dir=None):
         self.net = self.net.eval()
         if load_dir is not None:
             self.net.load_state_dict(torch.load(load_dir))
         count = 0
         print('Start test')
-        for init in tqdm(range(init_max)):
-            for target in range(target_max):
-                if init == target:
-                    continue
-                env = Env()
-                s = env.current_state()
-                ep_r = 0
-                for i in range(8):
-                    x = torch.unsqueeze(torch.FloatTensor(s), 0)
-                    # input only one sample
-                    actions_value = self.net(x)
-                    action = torch.argmax(actions_value).item()
+        total_length = 0
+        for _ in tqdm(range(test_case_count)):
+            env = Env()
+            s = env.get_current_state()
+            ep_r = 0
+            for i in range(4):
+                x = torch.unsqueeze(torch.FloatTensor(s), 0)
+                # input only one sample
+                root_result, leaf_result = self.net(x)
+                root_action = torch.argmax(root_result).item()
+                if root_action != 3:
+                    leaf_action = torch.argmax(leaf_result[root_action]).item()
                     # step
-                    s_, r, done, info = env.step(action)
-                    ep_r += r
-                    s = s_
-                    if done:
-                        break
-                if ep_r > 0:
-                    count += 1
-        acc = float(count) / init_max / target_max
-        if acc > self.max_acc:
-            torch.save(self.net.state_dict(), '../models/pretrained.pkl')
+                    s_, r, done = env.step(root_action, leaf_action)
+                else:
+                    find_path_result = leaf_result[3]
+                    find_path_source = torch.argmax(find_path_result[:, : int(find_path_result.shape[1] / 2)]).item()
+                    find_path_target = torch.argmax(find_path_result[:, int(find_path_result.shape[1] / 2) :]).item()
+                    # step
+                    s_, r, done = env.step(root_action, (find_path_source, find_path_target))
+                ep_r += r
+                s = s_
+                if done:
+                    if ep_r > 0:
+                        total_length += i
+                    break
+            if ep_r > 0:
+                count += 1
+
+        acc = float(count) / test_case_count
+        if acc > self.max_acc and load_dir is None:
+            torch.save(self.net.state_dict(), 'models/dnn.pkl')
             self.max_acc = acc
-        print(acc)
+        print("acc is: ", acc)
+        if count > 0:
+            # 因为统计的时候少1，这里补上1
+            print("length is: ", float(total_length) / count + 1)
 
 
 def main():
-    pretrain = Pretrain(300)
+    pretrain = Pretrain(30)
     # pretrain.net.load_state_dict(torch.load("../models/pretrained.pkl"))
-    pretrain.train()
-    # pretrain.test(init_max=1, load_dir="../models/pretrained.pkl")
-    # pretrain.test()
+    # pretrain.train()
+    start_time = time.time()
+    pretrain.test(load_dir="models/dnn.pkl", test_case_count=10000)
+    end_time = time.time()
+    print('use time: ', (end_time - start_time) / 10000)
 
 
 if __name__ == '__main__':

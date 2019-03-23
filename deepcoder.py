@@ -75,7 +75,7 @@ def dfs_search(target=None):
 
 if __name__ == '__main__':
     total_time = 0.0
-    total_amount = 60
+    total_amount = 600
     count = 0
     total_code_length = 0
 
