@@ -97,7 +97,7 @@ def do_search(model_path, test_count=200, beam_size=3, save=False):
 
 
 if __name__ == '__main__':
-    model_path = 'models/dnn.pkl'
+    model_path = 'models/dqn.pkl'
     beam_size = 3
 
     do_search(model_path=model_path, beam_size=beam_size, test_count=2000, save=False)

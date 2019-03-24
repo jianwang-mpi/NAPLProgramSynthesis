@@ -5,6 +5,7 @@ import numpy as np
 from env.env import Env
 import env.action as action_def
 from network.GrammarNet import GrammarNet
+import random
 
 # Hyper Parameters
 BATCH_SIZE = 1
@@ -12,7 +13,7 @@ LR = 0.003  # learning rate
 EPSILON = 0.90  # greedy policy
 GAMMA = 1  # reward discount
 TARGET_REPLACE_ITER = 100  # target update frequency
-MEMORY_CAPACITY = 5000
+MEMORY_CAPACITY = 500
 
 
 class DQN(object):
@@ -22,7 +23,7 @@ class DQN(object):
         self.learn_step_counter = 0  # for target updating
         self.memory_counter = 0  # for storing memory
         # self.memory = np.zeros((MEMORY_CAPACITY, N_STATES * 2 + 2))     # initialize memory
-        self.memory = [[]] * MEMORY_CAPACITY
+        self.memory = [None] * MEMORY_CAPACITY
         self.optimizer = torch.optim.Adam(self.eval_net.parameters(), lr=LR)
         self.loss_func = nn.MSELoss()
 
@@ -60,25 +61,46 @@ class DQN(object):
         self.learn_step_counter += 1
 
         # sample a transition
-        sample = np.random.choice(self.memory)
+        sample = random.choice(self.memory)
         b_s, b_a, b_r, b_s_ = sample
         b_s = torch.unsqueeze(torch.Tensor(b_s), 0)
-        b_r = torch.unsqueeze(torch.Tensor(b_r), 0)
         b_s_ = torch.unsqueeze(torch.Tensor(b_s_), 0)
 
+        root_action = b_a[0]
+        leaf_action = b_a[1]
+
         root_action_eval, leaf_action_eval = self.eval_net(b_s)
-        root_action_next, leaf_action_next = self.target_net(b_s_).detach()
+        root_action_eval = root_action_eval[:, root_action]
+        root_action_next, leaf_action_next = self.target_net(b_s_)
+        root_action_next = root_action_next.detach()
+        for item in leaf_action_next:
+            item.detach()
 
+        root_action_target = b_r + GAMMA * root_action_next.max(1)[0]
+        root_action_loss = self.loss_func(root_action_eval, root_action_target)
 
+        if root_action != 3:
+            leaf_action_eval = leaf_action_eval[root_action][:, leaf_action]
+            leaf_action_target = b_r + GAMMA * leaf_action_next[root_action].max(1)[0]
+            leaf_action_loss = self.loss_func(leaf_action_eval, leaf_action_target)
+        else:
+            source_eval = leaf_action_eval[root_action][:, :int(leaf_action_eval[root_action].shape[1] / 2)][:, leaf_action[0]]
+            target_eval = leaf_action_eval[root_action][:, int(leaf_action_eval[root_action].shape[1] / 2):][:, leaf_action[1]]
 
-        # q_eval w.r.t the action in experience
-        q_eval = self.eval_net(b_s).gather(1, b_a)  # shape (batch, 1)
-        q_next = self.target_net(b_s_).detach()  # detach from graph, don't backpropagate
-        q_target = b_r + GAMMA * q_next.max(1)[0].view(BATCH_SIZE, 1)  # shape (batch, 1)
-        loss = self.loss_func(q_eval, q_target)
+            source_next = leaf_action_next[root_action][:, :int(leaf_action_next[root_action].shape[1] / 2)]
+            target_next = leaf_action_next[root_action][:, int(leaf_action_next[root_action].shape[1] / 2):]
+
+            source_target = b_r + GAMMA * source_next.max(1)[0]
+            target_target = b_r + GAMMA * target_next.max(1)[0]
+
+            source_loss = self.loss_func(source_eval, source_target)
+            target_loss = self.loss_func(target_eval, target_target)
+
+            leaf_action_loss = source_loss + target_loss
 
         self.optimizer.zero_grad()
-        loss.backward()
+        root_action_loss.backward()
+        leaf_action_loss.backward()
         self.optimizer.step()
 
     def save(self, path):
@@ -91,9 +113,8 @@ class DQN(object):
     def test(self, test_case_count=200, load_dir=None):
         self.target_net = self.target_net.eval()
         if load_dir is not None:
-            self.net.load_state_dict(torch.load(load_dir))
+            self.target_net.load_state_dict(torch.load(load_dir))
         count = 0
-        print('Start test')
         total_length = 0
         for _ in tqdm(range(test_case_count)):
             env = Env()
@@ -132,31 +153,39 @@ class DQN(object):
             # 因为统计的时候少1，这里补上1
             print("length is: ", float(total_length) / count + 1)
 
+def main(test=False):
+    if test:
+        dqn = DQN()
+        dqn.test(test_case_count=10000, load_dir='models/dqn.pkl')
+    else:
+        dqn = DQN()
+        env = Env()
+        # dqn.load("models/pretrained.pkl")
+        print('\nCollecting experience...')
+        for i_episode in range(60000):
+            s = env.reset()
+            ep_r = 0
+            for _count in range(4):
+                root_action, leaf_action = dqn.choose_action(s)
 
-dqn = DQN()
-env = Env()
-# dqn.load("models/pretrained.pkl")
-print('\nCollecting experience...')
-for i_episode in range(600000):
-    s = env.reset()
-    ep_r = 0
-    for _count in range(8):
-        root_action, leaf_action = dqn.choose_action(s)
+                # take action
+                s_, r, done = env.step(root_action, leaf_action)
 
-        # take action
-        s_, r, done = env.step(root_action, leaf_action)
+                dqn.store_transition(s, (root_action, leaf_action), r, s_)
 
-        dqn.store_transition(s, (root_action, leaf_action), r, s_)
+                ep_r += r
+                if dqn.memory_counter > MEMORY_CAPACITY:
+                    dqn.learn()
 
-        ep_r += r
-        if dqn.memory_counter > MEMORY_CAPACITY:
-            dqn.learn()
+                if done:
+                    break
+                s = s_
+            # print('ep_r:', ep_r)
 
-        if done:
-            break
-        s = s_
+            if i_episode % 1000 == 1:
+                dqn.test()
 
-    if i_episode % 10000 == 1:
-        dqn.test()
+        dqn.save('models/dqn_final_no_pretrain.pkl')
 
-dqn.save('models/dqn_final_no_pretrain.pkl')
+if __name__ == '__main__':
+    main(False)
