@@ -22,9 +22,9 @@ class Env:
 
     def random_select_target(self):
         source_target = np.random.choice(action.find_path_source, size=2, replace=False)
-        source_node = source_target[0]
-        target_node = source_target[1]
-        paths = nx.all_simple_paths(self.network.G, source_node, target_node)
+        self.source_node = source_target[0]
+        self.target_node = source_target[1]
+        paths = nx.all_simple_paths(self.network.G, self.source_node, self.target_node)
         path_list = []
         for path in paths:
             path_list.append(path)
@@ -48,7 +48,7 @@ class Env:
         root_action = action.action[root_action_id]
         try:
             self.state = self.network.__getattribute__(root_action)(leaf_action_info)
-        except:
+        except Exception as e:
             pass
         done = self.count >= self.max_len or np.all(self.state == self.target_state)
         reward = int(np.all(self.state == self.target_state))

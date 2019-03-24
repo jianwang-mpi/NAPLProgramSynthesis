@@ -15,7 +15,7 @@ def topk_actions(action_value, beam_size):
     leaf_result_list = action_value[1]
     root_action = torch.argmax(root_result).item()
     root_value = torch.max(root_result).item()
-    if root_action !=3:
+    if root_action != 3:
         scores, indices = torch.topk(leaf_result_list[root_action][0], beam_size)
         scores = scores * root_value
         candidates = []
@@ -27,7 +27,8 @@ def topk_actions(action_value, beam_size):
         target_values = leaf_result_list[3][0][int(len(leaf_result_list[3][0]) / 2):]
         for i in range(len(source_values)):
             for j in range(len(target_values)):
-                candidates.append([source_values[i].item() * target_values[j].item() * root_value, (root_action, (i, j))])
+                candidates.append(
+                    [source_values[i].item() * target_values[j].item() * root_value, (root_action, (i, j))])
         candidates = sorted(candidates, key=lambda x: x[0], reverse=True)
         candidates = candidates[:beam_size]
     return candidates
@@ -80,18 +81,16 @@ def do_search(model_path, test_count=200, beam_size=3, save=False):
     count = 0
     logs = []
 
-
     for i in tqdm(range(test_count)):
         result, trajectory = beam_search(net, beam_size=beam_size)
         if result:
             count += 1
             total_length += len(trajectory)
             if save:
-                logs.append({'solution': trajectory})
+                logs.extend(trajectory)
 
     if save:
-        with open('dataset/beam_search.pkl', 'wb') as out:
-            pickle.dump(logs, out)
+        np.save('dataset/beam_search.npy', logs)
 
     print('success rate is: {}'.format(float(count) / test_count))
     print('average length is: {}'.format(float(total_length) / count))
@@ -101,4 +100,4 @@ if __name__ == '__main__':
     model_path = 'models/dnn.pkl'
     beam_size = 3
 
-    do_search(model_path=model_path, beam_size=beam_size, test_count=10000)
+    do_search(model_path=model_path, beam_size=beam_size, test_count=2000, save=False)

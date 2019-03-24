@@ -51,13 +51,20 @@ class DFS:
                     success = self.do_action(env, depth, i, j)
                     if success:
                         return True
+            # elif i == 3:
+            #     for j in range(6):
+            #         for k in range(6):
+            #             env = deepcopy(temp_env)
+            #             success = self.do_action(env, depth, i, (j, k))
+            #             if success:
+            #                 return True
             elif i == 3:
-                for j in range(6):
-                    for k in range(6):
-                        env = deepcopy(temp_env)
-                        success = self.do_action(env, depth, i, (j, k))
-                        if success:
-                            return True
+                env = deepcopy(temp_env)
+                source_node = int(env.source_node)
+                target_node = int(env.target_node)
+                success = self.do_action(env, depth, i, (source_node, target_node))
+                if success:
+                    return True
         return False
 
 
@@ -94,5 +101,5 @@ if __name__ == '__main__':
     print('success rate: ', float(count) / total_amount)
     print('avg time: ', total_time / count)
     print('avg code length: ', float(total_code_length) / count)
-    np.save('dataset/raw_data.npy', dataset)
+    np.save('dataset/raw_data_2.npy', dataset)
 

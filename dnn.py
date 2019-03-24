@@ -19,7 +19,8 @@ configure(logdir=log_dir)
 class BitVectorDataset(Dataset):
     def __init__(self, path):
         self.action_name_to_id = {}
-        self.data = self.generate_dataset(path)
+        # self.data = self.generate_dataset(path)
+        self.data = self.generate_dataset_from_raw(path)
 
     def __getitem__(self, index):
         item = self.data[index]
@@ -49,7 +50,16 @@ class BitVectorDataset(Dataset):
     def __len__(self):
         return len(self.data)
 
-    def generate_dataset(self, raw_data_file_path):
+    def generate_dataset(self, data_file_path):
+        data = np.load(data_file_path)
+        dataset = []
+        for item in data:
+            state = item[0]
+            action = item[1]
+            dataset.append({"state": state, "action": action})
+        return dataset
+
+    def generate_dataset_from_raw(self, raw_data_file_path):
         raw_data = np.load(raw_data_file_path)
         dataset = []
         for item in raw_data:
@@ -66,9 +76,9 @@ class BitVectorDataset(Dataset):
 
 
 class Pretrain:
-    def __init__(self, epoch=2000):
+    def __init__(self, dataset='dataset/raw_data.npy', epoch=2000):
         self.net = GrammarNet()
-        self.dataset = BitVectorDataset('dataset/raw_data.npy')
+        self.dataset = BitVectorDataset(dataset)
 
         self.dataloader = DataLoader(dataset=self.dataset, batch_size=1, shuffle=True, drop_last=True)
         self.epoch = epoch
@@ -151,7 +161,7 @@ class Pretrain:
 
 
 def main():
-    pretrain = Pretrain(30)
+    pretrain = Pretrain(dataset='dataset/raw_data_2.npy', epoch=10)
     # pretrain.net.load_state_dict(torch.load("../models/pretrained.pkl"))
     # pretrain.train()
     start_time = time.time()
