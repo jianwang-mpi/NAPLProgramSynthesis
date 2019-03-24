@@ -69,7 +69,7 @@ class DQN(object):
         root_action_eval, leaf_action_eval = self.eval_net(b_s)
         root_action_next, leaf_action_next = self.target_net(b_s_).detach()
 
-        
+
 
         # q_eval w.r.t the action in experience
         q_eval = self.eval_net(b_s).gather(1, b_a)  # shape (batch, 1)
